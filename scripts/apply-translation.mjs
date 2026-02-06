@@ -14,6 +14,11 @@ function usage() {
   console.log(`Usage:
   node scripts/apply-translation.mjs <slug> [--lang zh] [--in <file>]
 
+Input format (recommended):
+  - First line: a translated title as an H1 heading (starts with '# ')
+  - Blank line
+  - Then the translated body (do not repeat the title)
+
 Reads translated Markdown (from --in file or stdin) and writes:
   content/articles/<slug>/<lang>.md
 
@@ -80,8 +85,25 @@ translated = translated
   .replace(/\n```\s*$/, '')
   .trim() + '\n';
 
+// If the first non-empty line is an H1, use it as translated title and
+// remove it from the body to avoid duplicated titles on the page.
+let titleOverride = null;
+{
+  const lines = translated.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  const m = (lines[i] || '').match(/^#\s+(.+)\s*$/);
+  if (m) {
+    titleOverride = m[1].trim();
+    i++;
+    // drop following blank lines
+    while (i < lines.length && !lines[i].trim()) i++;
+    translated = lines.slice(i).join('\n').trim() + '\n';
+  }
+}
+
 const outFrontmatter = {
-  title: fm.title || slug,
+  title: titleOverride || fm.title || slug,
   date: fm.date,
   sourceUrl: fm.sourceUrl,
   lang,
