@@ -41,7 +41,7 @@ export async function getArticle(slug) {
   try {
     const raw = await fs.readFile(zhPath, 'utf-8');
     const fm = matter(raw);
-    const html = marked.parse(fm.content);
+    const html = marked.parse(fixStrongAdjacency(fm.content));
     return {
       slug,
       title: fm.data.title ?? slug,
@@ -52,4 +52,16 @@ export async function getArticle(slug) {
   } catch {
     return null;
   }
+}
+
+// CommonMark-style emphasis rules are strict about delimiter adjacency.
+// In Chinese translations we often have patterns like `**Item：**Item` without a space.
+// Many parsers render this literally. We insert a space after a closing strong marker
+// when it is immediately followed by a CJK/Latin/digit character.
+function fixStrongAdjacency(md) {
+  return md
+    // **bold**Word -> **bold** Word
+    .replace(/(\*\*[^\n]*?\*\*)(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1 ')
+    // __bold__Word -> __bold__ Word
+    .replace(/(__[^\n]*?__)(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1 ');
 }
