@@ -98,11 +98,24 @@ async function htmlToMarkdown(html, baseUrl) {
   // Lazy-load JSDOM (heavy)
   const { JSDOM } = await import('jsdom');
   const dom = new JSDOM(html, { url: baseUrl });
+
+  // --- Preserve code block language before Readability ---
+  // Many docs sites keep language info in wrapper classes:
+  //   <div class="language-csharp ext-cs ..."><pre class="language-csharp"><code>...</code></pre>...
+  // Readability may strip those classes. We'll capture language hints first and
+  // re-attach them after extraction by matching code text prefixes.
+  const langHints = collectCodeLangHints(dom.window.document);
+
   const reader = new Readability(dom.window.document);
   const article = reader.parse();
 
   const title = article?.title || dom.window.document.title || '';
   const contentHtml = article?.content || dom.window.document.body?.innerHTML || '';
+
+  // Re-attach language hints (best-effort).
+  const contentDom = new JSDOM(contentHtml, { url: baseUrl });
+  applyCodeLangHints(contentDom.window.document, langHints);
+  const patchedHtml = contentDom.window.document.body?.innerHTML || contentHtml;
 
   const turndown = new TurndownService({
     headingStyle: 'atx',
@@ -170,8 +183,93 @@ async function htmlToMarkdown(html, baseUrl) {
   });
 
   // Keep links and images as-is
-  const md = turndown.turndown(contentHtml);
+  const md = turndown.turndown(patchedHtml);
   return { title: title.trim(), markdown: md.trim() + '\n' };
+}
+
+function normalizeLangHint(lang) {
+  const l = String(lang || '').toLowerCase();
+  if (!l) return null;
+  if (l === 'cs' || l === 'c#') return 'csharp';
+  if (l === 'js') return 'javascript';
+  if (l === 'ts') return 'typescript';
+  if (l === 'sh' || l === 'shell') return 'bash';
+  if (l === 'py') return 'python';
+  if (l === 'kt') return 'kotlin';
+  return l;
+}
+
+function detectLangFromClass(className) {
+  const c = String(className || '');
+  let m = c.match(/\b(?:language|lang)-([a-z0-9_+-]+)\b/i);
+  if (m) return normalizeLangHint(m[1]);
+  m = c.match(/\bext-([a-z0-9_+-]+)\b/i);
+  if (m) return normalizeLangHint(m[1]);
+  return null;
+}
+
+function codePrefix(text) {
+  const t = String(text || '').replace(/\r/g, '').trim();
+  // Greedy/simple: first 120 chars is enough for matching.
+  return t.slice(0, 120);
+}
+
+function collectCodeLangHints(doc) {
+  const hints = [];
+  for (const pre of doc.querySelectorAll('pre')) {
+    const codeEl = pre.querySelector('code') || pre;
+    const raw = codeEl.textContent || '';
+    const prefix = codePrefix(raw);
+    if (!prefix) continue;
+
+    const lang =
+      detectLangFromClass(pre.getAttribute('class')) ||
+      detectLangFromClass(codeEl.getAttribute('class')) ||
+      detectLangFromClass(pre.parentElement?.getAttribute('class'));
+
+    if (!lang) continue;
+
+    hints.push({ prefix, lang });
+  }
+
+  // If page seems to use a single language overwhelmingly, keep it as default.
+  const counts = new Map();
+  for (const h of hints) counts.set(h.lang, (counts.get(h.lang) || 0) + 1);
+  let defaultLang = null;
+  if (counts.size === 1) defaultLang = [...counts.keys()][0];
+
+  return { hints, defaultLang };
+}
+
+function applyCodeLangHints(doc, pack) {
+  const { hints = [], defaultLang = null } = pack || {};
+
+  // For each <pre>, try to match by prefix; if cannot, fall back to defaultLang.
+  for (const pre of doc.querySelectorAll('pre')) {
+    const codeEl = pre.querySelector('code') || pre;
+    const raw = codeEl.textContent || '';
+    const prefix = codePrefix(raw);
+
+    let lang = null;
+    if (prefix) {
+      // Simple greedy match: first hint whose prefix is contained.
+      for (const h of hints) {
+        if (prefix === h.prefix || prefix.startsWith(h.prefix) || h.prefix.startsWith(prefix)) {
+          lang = h.lang;
+          break;
+        }
+      }
+    }
+
+    if (!lang) lang = defaultLang;
+    if (!lang) continue;
+
+    // Attach to <pre> so Turndown rules can pick it up.
+    const cur = pre.getAttribute('class') || '';
+    if (!/\blanguage-/.test(cur)) {
+      pre.setAttribute('class', `${cur} language-${lang}`.trim());
+    }
+  }
 }
 
 function makeSlug(title) {
