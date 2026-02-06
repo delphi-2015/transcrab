@@ -190,6 +190,28 @@ const { title = 'TransCrab', description } = Astro.props;
       button.icon-btn:hover { background: rgba(127,127,127,.12); }
       button.icon-btn svg { width: 18px; height: 18px; display: block; }
 
+      /* Code block copy button */
+      pre { position: relative; }
+      button.copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        border: 1px solid rgba(127,127,127,.22);
+        background: rgba(127,127,127,.10);
+        color: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      pre:hover button.copy-btn { opacity: 1; }
+      button.copy-btn svg { width: 16px; height: 16px; display:block; }
+
       /* Theme icon switching */
       html[data-theme="light"] .icon-moon { display: none; }
       html[data-theme="dark"] .icon-sun { display: none; }
@@ -301,6 +323,52 @@ const { title = 'TransCrab', description } = Astro.props;
           el.classList.add('hljs');
         }
       } catch {}
+
+      // Code block copy buttons
+      function addCopyButtons(scopeSelector = 'body') {
+        const scope = document.querySelector(scopeSelector) || document.body;
+        for (const pre of scope.querySelectorAll('pre')) {
+          if (pre.querySelector('button.copy-btn')) continue;
+          const code = pre.querySelector('code');
+          if (!code) continue;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'copy-btn';
+          btn.setAttribute('aria-label', 'Copy code');
+          btn.title = 'Copy';
+          btn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M9 9h10v10H9V9Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>`;
+
+          btn.addEventListener('click', async () => {
+            const text = code.innerText || code.textContent || '';
+            try {
+              await navigator.clipboard.writeText(text.replace(/\n+$/,'') + '\n');
+              btn.style.opacity = '1';
+              btn.title = 'Copied';
+              setTimeout(() => (btn.title = 'Copy'), 800);
+            } catch {
+              // fallback
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); } catch {}
+              ta.remove();
+            }
+          });
+
+          pre.appendChild(btn);
+        }
+      }
+
+      // Only add copy buttons on About page for now.
+      if (location.pathname.startsWith('/about')) {
+        addCopyButtons('main, body');
+      }
 
       // Image zoom modal
       const modal = document.getElementById('img-modal');
