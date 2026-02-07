@@ -121,6 +121,14 @@ async function htmlToMarkdown(html, baseUrl) {
     emDelimiter: '*',
   });
 
+  // Track guessed/explicit languages while converting.
+  // We'll use it to set a page-level default language for code fences that have no info string.
+  const fenceLangCounts = new Map();
+  const bump = (lang) => {
+    if (!lang) return;
+    fenceLangCounts.set(lang, (fenceLangCounts.get(lang) || 0) + 1);
+  };
+
   // Preserve language info for fenced code blocks when possible.
   // Many docs sites render code blocks like:
   //   <pre class="language-csharp"><code>...</code></pre>
@@ -178,6 +186,8 @@ async function htmlToMarkdown(html, baseUrl) {
       // This is ONLY a fallback when there are no language tags.
       if (!lang) lang = guessLangFromCode(text);
 
+      bump(lang);
+
       const fence = '```';
       const info = lang ? lang : '';
       return `\n${fence}${info}\n${text}\n${fence}\n`;
@@ -185,8 +195,62 @@ async function htmlToMarkdown(html, baseUrl) {
   });
 
   // Keep links and images as-is
-  const md = turndown.turndown(patchedHtml);
+  let md = turndown.turndown(patchedHtml);
+
+  // If most code blocks are the same language and some fences are missing info strings,
+  // apply a page-level default language to those empty fences.
+  const defaultFenceLang = pickDefaultFenceLang(fenceLangCounts);
+  if (defaultFenceLang) {
+    md = applyDefaultLangToFences(md, defaultFenceLang);
+  }
+
   return { title: title.trim(), markdown: md.trim() + '\n' };
+}
+
+function pickDefaultFenceLang(counts) {
+  const entries = [...(counts || new Map()).entries()].sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return null;
+  const total = entries.reduce((s, [, n]) => s + n, 0);
+  const [bestLang, bestCount] = entries[0];
+  const secondCount = entries[1]?.[1] ?? 0;
+
+  // Be conservative: only set a default when one language clearly dominates.
+  // This matches the user's expectation that a post is usually written in one language.
+  if (bestCount < 2) return null;
+  if (bestCount / Math.max(1, total) < 0.6) return null;
+  if (bestCount - secondCount < 2 && bestCount < 6) return null;
+
+  return bestLang;
+}
+
+function applyDefaultLangToFences(md, lang) {
+  const lines = String(md || '').split(/\r?\n/);
+  let inFence = false;
+  let fenceToken = '```';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const m = line.match(/^(```+)(.*)$/);
+    if (!m) continue;
+
+    const token = m[1];
+    const info = (m[2] || '').trim();
+
+    if (!inFence) {
+      // opening fence
+      inFence = true;
+      fenceToken = token;
+      if (!info) lines[i] = `${token}${lang}`;
+    } else {
+      // closing fence (match same token length)
+      if (token === fenceToken) {
+        inFence = false;
+        fenceToken = '```';
+      }
+    }
+  }
+
+  return lines.join('\n');
 }
 
 function normalizeLangHint(lang) {
