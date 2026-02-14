@@ -1,0 +1,38 @@
+---
+title: >-
+  Spotify says its best developers haven’t written a line of code since
+  December, thanks to AI
+date: '2026-02-14T13:33:28.078Z'
+sourceUrl: >-
+  https://techcrunch.com/2026/02/12/spotify-says-its-best-developers-havent-written-a-line-of-code-since-december-thanks-to-ai/
+lang: source
+---
+Has AI coding reached a tipping point? That seems to be the case for Spotify at least, which shared this week during [its fourth-quarter earnings call](https://techcrunch.com/2026/02/10/spotify-hits-a-record-751m-monthly-users-thanks-to-wrapped-new-free-features/) that the best developers at the company “have not written a single line of code since December.” That statement, from Spotify co-CEO Gustav Söderström, came alongside other comments about how the company is using AI to accelerate development.
+
+Of note, Spotify pointed out it shipped more than 50 new features and changes to its streaming app throughout 2025. And, most recently, it has rolled out more features, like AI-powered [Prompted Playlists](https://techcrunch.com/2026/01/22/spotify-brings-ai-powered-prompted-playlists-to-the-u-s-and-canada/), [Page Match](https://techcrunch.com/2026/02/05/spotify-ventures-into-physical-book-sales-adds-new-audiobook-features/) for audiobooks, and [About This Song](https://techcrunch.com/2026/02/06/spotifys-new-feature-lets-you-explore-the-story-behind-the-song-youre-listening-to/), which all launched within the past few weeks.
+
+At Spotify, engineers are using an internal system called “Honk” to speed up coding and product velocity, the company told analysts on the call. This system allows for things like remote, real-time code deployment using generative AI, and specifically Claude Code.
+
+“As a concrete example, an engineer at Spotify on their morning commute from Slack on their cell phone can tell Claude to fix a bug or add a new feature to the iOS app,” Söderström said. “And once Claude finishes that work, the engineer then gets a new version of the app, pushed to them on Slack on their phone, so that he can then merge it to production, all before they even arrive at the office.”
+
+Spotify credited the system in helping to speed up coding and deployment “tremendously.”
+
+“We foresee this not being the end of the line in terms of AI development, just the beginning,” Söderström said.
+
+The exec also touted Spotify’s ability to build a unique dataset that other LLMs could not commoditize, the way they could other online resources, like Wikipedia. That’s because there’s not always a factual answer for music-related questions, he said.
+
+Techcrunch event
+
+Boston, MA | June 23, 2026
+
+For instance, if you asked what workout music is, you’d get different answers from different people, sometimes based on their geography. Americans tend to prefer hip-hop overall, though millions prefer death metal. And while a number of Europeans would work out to EDM, many Scandinavians like heavy metal.
+
+“This is a dataset that we are building right now that no one else is really building. It does not exist at this scale. And we see it improving every time we retrain our models,” Söderström noted.
+
+Analysts on the call also asked about Spotify’s approach to AI-generated music. The company explained that it’s allowing artists and labels to [indicate in a track’s metadata](https://techcrunch.com/2025/09/25/spotify-updates-ai-policy-to-label-tracks-cut-down-on-spam/) how the song was made but is still policing the platform for spam.
+
+Sarah has worked as a reporter for TechCrunch since August 2011. She joined the company after having previously spent over three years at ReadWriteWeb. Prior to her work as a reporter, Sarah worked in I.T. across a number of industries, including banking, retail and software.
+
+You can contact or verify outreach from Sarah by emailing [sarahp@techcrunch.com](mailto:sarahp@techcrunch.com) or via encrypted message at sarahperez.01 on Signal.
+
+[View Bio](https://techcrunch.com/author/sarah-perez/)
